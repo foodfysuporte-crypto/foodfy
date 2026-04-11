@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <title>Foodfy Modern | Produtos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="h-full bg-slate-950 text-white" x-data="productsPage" x-init="init()">
+    <main class="p-8 max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">Gestão de Cardápio</h1>
+            <button @click="showModal = true" class="bg-purple-600 px-6 py-2 rounded-xl font-bold">+ Novo</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <template x-for="p in products" :key="p.id">
+                <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                    <h3 class="text-xl font-bold" x-text="p.name"></h3>
+                    <p class="text-slate-400" x-text="`R$ ${p.price}`"></p>
+                </div>
+            </template>
+        </div>
+    </main>
+    <div x-show="showModal" class="fixed inset-0 bg-black/50 flex项目-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-4">Novo Produto</h2>
+            <form @submit.prevent="save()">
+                <input x-model="form.name" placeholder="Nome" class="w-full bg-slate-800 p-3 mb-3 rounded-xl">
+                <input x-model="form.price" type="number" placeholder="Preço" class="w-full bg-slate-800 p-3 mb-4 rounded-xl">
+                <button class="w-full bg-purple-600 p-3 rounded-xl font-bold">Salvar</button>
+            </form>
+        </div>
+    </div>
+    <script src="js/app.js"></script><script src="js/auth.js"></script><script src="js/products.js"></script>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('productsPage', () => ({
+                products: [], showModal: false, form: { name: '', price: 0 },
+                async init() { this.products = await window.products.list(); },
+                async save() { await window.products.save(this.form); this.showModal = false; this.init(); }
+            }))
+        })
+    </script>
+</body>
+</html>

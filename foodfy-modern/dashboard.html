@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-slate-950 font-sans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foodfy Modern | Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 
+                        brand: { 500: '#660F56', 600: '#520c45' } 
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body 
+    class="h-full flex flex-col bg-slate-950 text-white" 
+    x-data="{ user: null }" 
+    x-init="user = await window.auth.session(); if(!user) window.location.href='index.html'"
+>
+    <!-- Header -->
+    <header class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 backdrop-blur-md">
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-brand-500 to-pink-500 bg-clip-text text-transparent">
+            Foodfy Modern
+        </h1>
+        
+        <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-3 text-right">
+                <div class="hidden sm:block">
+                    <p class="text-sm font-semibold text-white" x-text="user?.email?.split('@')[0]"></p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-tighter" x-text="user?.email"></p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20">
+                    <span x-text="user?.email?.charAt(0).toUpperCase()"></span>
+                </div>
+            </div>
+            
+            <button 
+                @click="window.auth.signOut()" 
+                class="px-4 py-2 bg-slate-800 hover:bg-red-500/10 hover:text-red-500 border border-slate-700 hover:border-red-500/50 rounded-xl text-sm transition-all duration-300"
+            >
+                Sair
+            </button>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 p-8 overflow-y-auto">
+        <div class="max-w-7xl mx-auto space-y-8">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-4xl font-bold text-white">Painel de Controle</h2>
+                    <p class="text-slate-400 mt-1">Bem-vindo de volta ao seu centro de operações.</p>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 rounded-2xl text-sm font-semibold transition-all">
+                        + Nova Venda
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card -->
+                <div class="p-6 bg-slate-900 rounded-3xl border border-slate-800 hover:border-brand-500/30 transition-colors group">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4">Vendas Hoje</p>
+                    <div class="flex items-baseline space-x-2">
+                        <span class="text-3xl font-black text-white">R$ 0,00</span>
+                        <span class="text-green-500 text-xs font-bold">↑ 0%</span>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-slate-900 rounded-3xl border border-slate-800 hover:border-brand-500/30 transition-colors group">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4">Pedidos Ativos</p>
+                    <span class="text-3xl font-black text-white">0</span>
+                </div>
+
+                <div class="p-6 bg-slate-900 rounded-3xl border border-slate-800 hover:border-brand-500/30 transition-colors group">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4">Clientes</p>
+                    <span class="text-3xl font-black text-white">0</span>
+                </div>
+
+                <div class="p-6 bg-slate-900 rounded-3xl border border-slate-800 hover:border-brand-500/30 transition-colors group text-brand-500">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-4">Estoque</p>
+                    <span class="text-3xl font-black text-white">0</span>
+                </div>
+            </div>
+
+            <!-- Placeholder Section -->
+            <div class="p-12 border-2 border-dashed border-slate-800 rounded-3xl flex flex-col items-center justify-center text-center">
+                <div class="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-300">Nenhuma movimentação recente</h3>
+                <p class="text-sm text-slate-500 mt-1 max-w-xs">As informações de vendas e gráficos aparecerão aqui assim que você processar o primeiro pedido.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Global Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

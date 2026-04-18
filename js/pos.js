@@ -1,1 +1,78 @@
-const posHandler = { async loadProducts() { const { data, error } = await window.supabaseClient.from('products').select('*, categories(name)').eq('is_active', true).order('name'); if (error) throw error; return data; }, async loadCategories() { const { data, error } = await window.supabaseClient.from('categories').select('*').order('name'); if (error) throw error; return data; }, async placeOrder(cart, orderType, identifier) { const session = await window.auth.session(); if(!session) throw new Error(" Sess�o expirada\); const orgId = session.profile.org_id; let customerId = null; if (identifier && identifier.trim() !== '') { const cleanId = identifier.trim().toUpperCase(); let { data: customers } = await window.supabaseClient.from('customers').select('id').eq('name', cleanId).eq('org_id', orgId).limit(1); if (customers && customers.length > 0) { customerId = customers[0].id; } else { const { data: newCust, error: custErr } = await window.supabaseClient.from('customers').insert([{ org_id: orgId, name: cleanId }]).select(); if (!custErr && newCust) { customerId = newCust[0].id; } } } const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0); const { data: order, error: orderErr } = await window.supabaseClient.from('orders').insert([{ org_id: orgId, customer_id: customerId, type: orderType, total_amount: totalAmount, status: 'novo' }]).select(); if (orderErr) throw orderErr; const orderId = order[0].id; const orderItems = cart.map(item => ({ order_id: orderId, product_id: item.id, quantity: item.quantity, unit_price: item.price })); const { error: itemsErr } = await window.supabaseClient.from('order_items').insert(orderItems); if (itemsErr) throw itemsErr; return orderId; } }; window.pos = posHandler;
+const posHandler = {
+    async loadCategories() {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (!session) return [];
+        const orgId = session.user.user_metadata?.org_id || (await window.supabaseClient.from('profiles').select('org_id').eq('id', session.user.id).single()).data?.org_id;
+
+        const { data, error } = await window.supabaseClient.from('categories')
+            .select('*').eq('org_id', orgId);
+        return error ? [] : data;
+    },
+
+    async loadProducts() {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (!session) return [];
+        const orgId = session.user.user_metadata?.org_id || (await window.supabaseClient.from('profiles').select('org_id').eq('id', session.user.id).single()).data?.org_id;
+
+        const { data, error } = await window.supabaseClient.from('products')
+            .select('*').eq('org_id', orgId).is('deleted_at', null);
+        return error ? [] : data;
+    },
+
+    async placeOrder(cart, orderType, identifier, address = null, payment = null) {
+        if (!cart.length) throw new Error("Carrinho vazio");
+        
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        const profileResponse = await window.supabaseClient.from('profiles').select('org_id').eq('id', session.user.id).single();
+        const orgId = profileResponse.data.org_id;
+
+        let customerId = null;
+
+        // Gerenciar cliente dinâmico (Mesa ou Balcão genérico)
+        if (identifier) {
+            let fetchCustomer = await window.supabaseClient.from('customers')
+                .select('id').eq('org_id', orgId).eq('name', identifier).eq('type', orderType).single();
+            
+            if (fetchCustomer.data) {
+                customerId = fetchCustomer.data.id;
+            } else {
+                let createCustomer = await window.supabaseClient.from('customers')
+                    .insert({ org_id: orgId, name: identifier, type: orderType, phone: '', email: null })
+                    .select('id').single();
+                if(createCustomer.error) throw createCustomer.error;
+                customerId = createCustomer.data.id;
+            }
+        }
+
+        const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+        // Criar Pedido Mestre com Endereço e Metodo
+        const { data: orderMestre, error: orderError } = await window.supabaseClient.from('orders')
+            .insert({
+                org_id: orgId,
+                customer_id: customerId,
+                total_amount: totalAmount,
+                status: 'paid', // Em uma v2 teria 'aberto', 'pago'
+                delivery_address: address, // Vindo do Caixa no modo Balcão/Delivery
+                payment_method: payment || 'pix'
+            })
+            .select('id').single();
+        
+        if (orderError) throw orderError;
+
+        // Inserir Itens
+        const orderItems = cart.map(item => ({
+            order_id: orderMestre.id,
+            product_id: item.id,
+            quantity: item.quantity,
+            unit_price: item.price
+        }));
+
+        const { error: itemsError } = await window.supabaseClient.from('order_items').insert(orderItems);
+        if (itemsError) throw itemsError;
+
+        return true;
+    }
+};
+
+window.pos = posHandler;

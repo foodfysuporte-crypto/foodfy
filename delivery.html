@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-slate-950 font-sans antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Foodfy Modern | Motoboy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <style>[x-cloak] { display: none !important; }</style>
+</head>
+<body class="h-full flex flex-col bg-slate-950 text-white" x-data="deliveryPage" x-init="init()">
+    
+    <!-- Header Especial Delivery -->
+    <header class="p-5 border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center text-xl shadow-lg border border-orange-500/30">🛵</div>
+            <div>
+                <h1 class="text-xl font-black italic text-white flex items-center gap-2">Entregas <span class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full not-italic shadow-lg shadow-orange-500/50 blink" x-show="deliveries.length > 0" x-text="deliveries.length"></span></h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Módulo Motoboy</p>
+            </div>
+        </div>
+        <button @click="window.auth.signOut()" class="text-sm font-bold text-slate-400 hover:text-white transition-colors bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">Sair</button>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 pb-24">
+        
+        <!-- Fila de Pedidos Prontos -->
+        <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 ml-1 flex items-center justify-between">
+            Fila de Despacho
+            <button @click="loadDeliveries" class="text-xs text-orange-400">Atualizar</button>
+        </h2>
+
+        <div class="space-y-4">
+            <template x-for="order in deliveries" :key="order.id">
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-orange-500/20 to-transparent rounded-bl-full border-b border-l border-orange-500/10"></div>
+                    
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-black text-lg text-white" x-text="'Pedido #' + String(order.id).padStart(4, '0')"></h3>
+                            <p class="text-xs text-slate-400 font-semibold" x-text="new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ' • ' + (order.customer_id?.name || 'Cliente Padrão')"></p>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-xl font-black text-orange-400" x-text="formatMoney(order.total_amount)"></span>
+                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-500 bg-slate-950 px-2 py-1 rounded-md border border-slate-800" x-text="order.payment_method || 'PIX'"></span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 rounded-2xl p-4 mb-4 border border-slate-800/50 flex items-start gap-3">
+                        <span class="text-lg mt-0.5">📍</span>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold text-white leading-snug" x-text="order.delivery_address || 'Endereço não informado na nota'"></p>
+                            <a :href="'https://waze.com/ul?q=' + encodeURIComponent(order.delivery_address || '')" target="_blank" x-show="order.delivery_address" class="inline-flex items-center gap-1.5 mt-2 text-xs font-black text-blue-400 uppercase tracking-widest hover:text-blue-300">
+                                <span>Abrir no Waze</span> ↗
+                            </a>
+                        </div>
+                    </div>
+
+                    <button @click="finishDelivery(order.id)" class="w-full py-4 bg-orange-600 hover:bg-orange-500 text-white font-black text-sm uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-600/30 transition-all active:scale-95 border-b-4 border-orange-700 hover:border-orange-600 focus:outline-none flex justify-center items-center gap-2">
+                        <span>ENTREGUE E RECEBIDO</span>
+                        <i>🏁</i>
+                    </button>
+                </div>
+            </template>
+
+            <div x-show="deliveries.length === 0" class="flex flex-col items-center justify-center py-20 text-center" x-cloak>
+                <div class="text-5xl mb-4 opacity-20">👍</div>
+                <h3 class="text-sm font-black text-slate-500 uppercase tracking-widest">Nenhuma entrega no balcão</h3>
+                <p class="text-xs text-slate-600 font-semibold mt-1">Fique tranquilo, o caixa vai mandar aqui.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('deliveryPage', () => ({
+                user: null, orgId: null, deliveries: [],
+                
+                async init() {
+                    const session = await window.auth.session();
+                    if (!session || (session.profile.role !== 'motoboy' && session.profile.role !== 'admin')) return window.location.href = 'index.html';
+                    this.user = session;
+                    this.orgId = session.profile.org_id;
+
+                    await this.loadDeliveries();
+                    
+                    // Supabase Realtime para ouvir novos pedidos caindo
+                    window.supabaseClient.channel('custom-all-channel')
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `org_id=eq.${this.orgId}` }, () => {
+                            this.loadDeliveries();
+                        })
+                        .subscribe();
+                },
+
+                async loadDeliveries() {
+                    // Busca orders que têm endereço preenchido que não estão pagas/fechadas.
+                    // Vamos simular "status delivery"
+                    const { data } = await window.supabaseClient.from('orders')
+                        .select('*, customer_id(name)')
+                        .eq('org_id', this.orgId)
+                        .not('delivery_address', 'is', null)
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+
+                    if(data) this.deliveries = data;
+                },
+
+                async finishDelivery(id) {
+                    if(!confirm('Confirmar entrega? O pedido sairá da tela.')) return;
+                    
+                    // Simplesmente tira o endereço ou muda o status se tiver. 
+                    // Como não tem coluna status, deletar address é um workaround da fase 1.
+                    const { error } = await window.supabaseClient.from('orders').update({ delivery_address: null }).eq('id', id);
+                    if(!error) {
+                        this.deliveries = this.deliveries.filter(d => d.id !== id);
+                    } else {
+                        alert('Erro ao confirmar.');
+                    }
+                },
+
+                formatMoney(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val); }
+            }))
+        });
+    </script>
+</body>
+</html>

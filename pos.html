@@ -74,9 +74,23 @@
                 <input type="text" x-model="tableName" placeholder="Ex: 05" class="w-full bg-slate-950 rounded-xl p-3 text-white font-black text-center outline-none focus:ring-2 focus:ring-purple-500">
             </div>
             
-            <div x-show="orderType === 'balcao'" x-cloak>
-                <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Cliente (Opcional)</label>
-                <input type="text" x-model="tableName" placeholder="Mário (Balcão)" class="w-full bg-slate-950 rounded-xl p-3 text-white font-bold outline-none focus:ring-2 focus:ring-purple-500">
+            <div x-show="orderType === 'balcao'" x-cloak class="space-y-3">
+                <div>
+                    <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Cliente (Opcional)</label>
+                    <input type="text" x-model="tableName" placeholder="Mário (Balcão)" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg p-2.5 text-white font-bold outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Endereço Delivery</label>
+                    <input type="text" x-model="deliveryAddress" placeholder="Rua das Flores, 123" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg p-2.5 text-white font-bold outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Forma de Pagto</label>
+                    <select x-model="paymentMethod" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg p-2.5 text-white font-bold outline-none focus:border-purple-500">
+                        <option value="pix">PIX</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="cartao">Cartão</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -127,6 +141,7 @@
         document.addEventListener('alpine:init', () => {
             Alpine.data('posPage', () => ({
                 products: [], categories: [], cart: [], search: '', selectedCategory: null, orderType: 'mesa', tableName: '', isProcessing: false,
+                deliveryAddress: '', paymentMethod: 'pix',
                 async init() { 
                     const session = await window.auth.session(); 
                     if(!session) return window.location.href = 'index.html'; 
@@ -149,9 +164,9 @@
                 async processOrder() {
                     this.isProcessing = true;
                     try { 
-                        await window.pos.placeOrder(this.cart, this.orderType, this.tableName); 
+                        await window.pos.placeOrder(this.cart, this.orderType, this.tableName, this.deliveryAddress, this.paymentMethod); 
                         alert('Pedido lançado com sucesso!'); 
-                        this.cart = []; this.tableName = ''; 
+                        this.cart = []; this.tableName = ''; this.deliveryAddress = ''; this.paymentMethod = 'pix';
                     } catch (e) { 
                         alert("Erro ao lançar pedido: " + e.message); 
                     } finally { 

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-slate-950 font-sans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foodfy Modern | PDV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-full flex bg-slate-950 text-white overflow-hidden" x-data="posPage" x-init="init()">
+    <aside class="w-16 md:w-20 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 space-y-8 z-10 w-fit">
+        <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-purple-600 flex items-center justify-center font-black italic text-lg shadow-lg">F</div>
+        <nav class="flex-1 space-y-4 w-full px-2 md:px-4 text-center">
+            <a href="dashboard.html" class="block py-3 rounded-xl hover:bg-slate-800 text-slate-400 font-bold text-[10px] md:text-xs">DASH</a>
+            <a href="products.html" class="block py-3 rounded-xl hover:bg-slate-800 text-slate-400 font-bold text-[10px] md:text-xs">PROD</a>
+            <a href="pos.html" class="block py-3 rounded-xl bg-purple-600 text-white font-bold text-[10px] md:text-xs shadow-lg">PDV</a>
+        </nav>
+    </aside>
+    <main class="flex-1 flex flex-col h-full bg-slate-950/50 relative">
+        <header class="p-6 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900/40 gap-4">
+            <div class="flex items-center space-x-6">
+                <h1 class="text-2xl font-black italic">CAIXA RÁPIDO</h1>
+                <div class="bg-slate-800 rounded-lg p-1 flex">
+                    <button @click="setOrderType('mesa')" :class="orderType === 'mesa' ? 'bg-purple-600 text-white' : 'text-slate-400'" class="px-6 py-2 rounded-md text-sm font-bold transition-all">Mesa</button>
+                    <button @click="setOrderType('balcao')" :class="orderType === 'balcao' ? 'bg-purple-600 text-white' : 'text-slate-400'" class="px-6 py-2 rounded-md text-sm font-bold transition-all">Balcão</button>
+                </div>
+            </div>
+            
+            <div class="w-full md:w-80">
+                <input type="text" x-model="search" placeholder="Buscar produto..." class="w-full bg-slate-800 border-none rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500 outline-none">
+            </div>
+        </header>
+
+        <div class="px-6 py-3 border-b border-slate-800 overflow-x-auto hide-scrollbar flex space-x-3 items-center">
+            <button @click="selectedCategory = null" :class="!selectedCategory ? 'bg-white text-slate-900' : 'bg-slate-800 text-slate-400'" class="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">Todas</button>
+            <template x-for="cat in categories" :key="cat.id">
+                <button @click="selectedCategory = cat.id" :class="selectedCategory === cat.id ? 'bg-white text-slate-900' : 'bg-slate-800 text-slate-400'" class="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-opacity-50" x-text="cat.name"></button>
+            </template>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <template x-for="p in filteredProducts" :key="p.id">
+                    <button @click="addToCart(p)" class="text-left bg-slate-900 rounded-2xl overflow-hidden hover:ring-2 hover:ring-purple-500 transition-all focus:outline-none flex flex-col h-full">
+                        <div class="h-32 bg-slate-800 relative w-full flex items-center justify-center shrink-0">
+                            <span class="text-xs font-bold text-slate-600" x-show="!p.image_url">SEM FOTO</span>
+                            <img x-show="p.image_url" :src="p.image_url" class="absolute inset-0 w-full h-full object-cover">
+                        </div>
+                        <div class="p-3 flex-1 flex flex-col justify-between">
+                            <h3 class="font-bold text-sm text-white truncate w-full" x-text="p.name"></h3>
+                            <p class="text-purple-400 font-black mt-1" x-text="formatMoney(p.price)"></p>
+                        </div>
+                    </button>
+                </template>
+            </div>
+            <div x-show="filteredProducts.length === 0" class="text-center py-20 text-slate-500" x-cloak>
+                <p>Nenhum produto listado</p>
+            </div>
+        </div>
+    </main>
+
+    <aside class="w-80 md:w-96 bg-slate-900 border-l border-slate-800 flex flex-col h-full right-0 relative z-20">
+        <div class="p-6 border-b border-slate-800">
+            <h2 class="text-2xl font-black italic mb-4">Comanda</h2>
+            
+            <div x-show="orderType === 'mesa'">
+                <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Mesa / Comanda</label>
+                <input type="text" x-model="tableName" placeholder="Ex: 05" class="w-full bg-slate-950 rounded-xl p-3 text-white font-black text-center outline-none focus:ring-2 focus:ring-purple-500">
+            </div>
+            
+            <div x-show="orderType === 'balcao'" x-cloak>
+                <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Cliente (Opcional)</label>
+                <input type="text" x-model="tableName" placeholder="Mário (Balcão)" class="w-full bg-slate-950 rounded-xl p-3 text-white font-bold outline-none focus:ring-2 focus:ring-purple-500">
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-2">
+            <div x-show="cart.length === 0" class="flex flex-col items-center justify-center p-10 text-slate-600" x-cloak>
+                <p class="font-bold text-sm uppercase tracking-widest text-center mt-10">Carrinho Vazio<br><span class="text-xs font-normal">Toque num produto</span></p>
+            </div>
+            
+            <template x-for="item in cart" :key="item.id">
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div class="flex-1 min-w-0 pr-2">
+                        <h4 class="font-bold text-white text-sm truncate" x-text="item.name"></h4>
+                        <p class="text-purple-400 text-xs font-bold mt-1" x-text="formatMoney(item.price * item.quantity)"></p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2 bg-slate-900 rounded-lg p-1">
+                        <button @click="decreaseQty(item.id)" class="w-7 h-7 rounded bg-slate-800 text-white font-black flex items-center justify-center focus:outline-none">-</button>
+                        <span class="w-5 text-center text-sm font-black" x-text="item.quantity"></span>
+                        <button @click="increaseQty(item.id)" class="w-7 h-7 rounded bg-purple-600 text-white font-black flex items-center justify-center focus:outline-none">+</button>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div class="p-6 bg-slate-950 space-y-4">
+            <div class="flex justify-between items-end">
+                <span class="text-slate-500 text-sm font-black uppercase tracking-widest">Total</span>
+                <span class="text-3xl font-black text-white" x-text="formatMoney(total)"></span>
+            </div>
+            
+            <button 
+                @click="processOrder" 
+                :disabled="cart.length === 0 || isProcessing || (orderType === 'mesa' && !tableName)"
+                :class="(cart.length === 0 || (orderType === 'mesa' && !tableName)) ? 'opacity-30 bg-slate-800' : 'bg-green-500 hover:bg-green-400 shadow-xl shadow-green-500/20 active:scale-95 text-white'"
+                class="w-full py-4 rounded-xl font-black transition-all flex items-center justify-center uppercase tracking-widest"
+            >
+                <span x-text="isProcessing ? 'Processando...' : 'LANÇAR PEDIDO'"></span>
+            </button>
+            <div x-show="orderType === 'mesa' && !tableName && cart.length > 0" class="text-red-400 text-center text-xs font-bold tracking-widest uppercase mt-2" x-cloak>
+                Falta a Mesa
+            </div>
+        </div>
+    </aside>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pos.js"></script>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('posPage', () => ({
+                products: [], categories: [], cart: [], search: '', selectedCategory: null, orderType: 'mesa', tableName: '', isProcessing: false,
+                async init() { 
+                    const session = await window.auth.session(); 
+                    if(!session) return window.location.href = 'index.html'; 
+                    await this.loadData(); 
+                },
+                async loadData() { 
+                    this.products = await window.pos.loadProducts() || []; 
+                    this.categories = await window.pos.loadCategories() || []; 
+                },
+                setOrderType(t) { this.orderType = t; this.tableName = ''; },
+                addToCart(product) { 
+                    const existing = this.cart.find(item => item.id === product.id); 
+                    if(existing) { existing.quantity++; } else { this.cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1 }); } 
+                },
+                increaseQty(id) { const item = this.cart.find(i => i.id === id); if(item) item.quantity++; },
+                decreaseQty(id) { 
+                    const index = this.cart.findIndex(i => i.id === id); 
+                    if(index !== -1) { if(this.cart[index].quantity > 1) { this.cart[index].quantity--; } else { this.cart.splice(index, 1); } } 
+                },
+                async processOrder() {
+                    this.isProcessing = true;
+                    try { 
+                        await window.pos.placeOrder(this.cart, this.orderType, this.tableName); 
+                        alert('Pedido lançado com sucesso!'); 
+                        this.cart = []; this.tableName = ''; 
+                    } catch (e) { 
+                        alert("Erro ao lançar pedido: " + e.message); 
+                    } finally { 
+                        this.isProcessing = false; 
+                    }
+                },
+                get filteredProducts() { 
+                    return this.products.filter(p => { 
+                        const matchCat = this.selectedCategory ? p.category_id === this.selectedCategory : true; 
+                        const matchSearch = p.name.toLowerCase().includes(this.search.toLowerCase()); 
+                        return matchCat && matchSearch; 
+                    }); 
+                },
+                get total() { return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0); },
+                formatMoney(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val); }
+            }))
+        })
+    </script>
+</body>
+</html>

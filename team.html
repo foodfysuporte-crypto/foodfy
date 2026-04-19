@@ -154,10 +154,10 @@
                 async createStaff() {
                     this.isCreating = true;
                     try {
-                        const cleanCode = this.inviteCode.trim().toUpperCase();
-                        const cleanUser = this.newStaff.name.trim().toLowerCase().replace(/\s+/g,'');
+                        const cleanCode = this.inviteCode.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const cleanUser = this.newStaff.name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g,'');
                         const vEmail = `${cleanUser}@${cleanCode}.staff.com`;
-                        const vPass = `pin-${this.newStaff.pin}-${cleanCode}`;
+                        const vPass = `pin-${this.newStaff.pin}-${this.inviteCode.trim().toUpperCase()}`;
 
                         // Criamos um client SECUNDÁRIO que não rouba a sessão atual do dono!!!
                         const supabaseUrl = window.supabaseClient.supabaseUrl;

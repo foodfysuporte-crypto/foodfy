@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-slate-950 font-sans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Painel da Equipe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+</head>
+<body class="h-full flex flex-col pt-10 px-4 items-center bg-slate-950 text-white" x-data="staffLogin">
+    
+    <div class="w-full max-w-sm flex flex-col items-center">
+        <!-- Logo Simplificada -->
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-black italic text-3xl shadow-lg mb-6">F</div>
+        
+        <h1 class="text-2xl font-black mb-1">Acesso da Equipe</h1>
+        <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-10">Não requer e-mail</p>
+
+        <form @submit.prevent="submit" class="w-full space-y-4">
+            
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col group focus-within:border-blue-500 transition-colors">
+                <label class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1 group-focus-within:text-blue-500 transition-colors">Código da Loja</label>
+                <input type="text" x-model="orgCode" required class="bg-transparent text-white font-black text-xl outline-none uppercase placeholder-slate-700" placeholder="FD-XXXX">
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col group focus-within:border-blue-500 transition-colors">
+                <label class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1 group-focus-within:text-blue-500 transition-colors">Seu Nome / Usuário</label>
+                <input type="text" x-model="username" required class="bg-transparent text-white font-bold text-lg outline-none lowercase placeholder-slate-700" placeholder="Ex: joao">
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col group focus-within:border-blue-500 transition-colors">
+                <label class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1 group-focus-within:text-blue-500 transition-colors">Senha Numérica (PIN)</label>
+                <input type="password" x-model="pin" inputmode="numeric" required class="bg-transparent text-white font-black text-2xl tracking-[0.3em] outline-none placeholder-slate-700" placeholder="••••">
+            </div>
+
+            <div x-show="error" class="text-red-400 text-xs font-bold bg-red-500/10 p-4 rounded-2xl border border-red-500/20 text-center" x-text="error" x-transition></div>
+
+            <button type="submit" :disabled="loading" class="w-full py-5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:scale-100 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 mt-4 active:scale-95" flex justify-center>
+                <span x-show="!loading">Acessar Sistema</span>
+                <span x-show="loading">Validando...</span>
+            </button>
+        </form>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('staffLogin', () => ({
+                orgCode: '', username: '', pin: '', error: '', loading: false,
+                async submit() {
+                    this.loading = true; this.error = '';
+                    
+                    const cleanCode = this.orgCode.trim().toUpperCase();
+                    const cleanUser = this.username.trim().toLowerCase().replace(/\s+/g,'');
+                    const email = `${cleanUser}@${cleanCode}.staff.com`;
+                    const pass = `pin-${this.pin}-${cleanCode}`;
+
+                    try {
+                        // The existing signIn method inside auth.js perfectly redirects Garçom, Motoboy and Caixa.
+                        await window.auth.signIn(email, pass);
+                    } catch (e) {
+                        this.error = "Acesso Negado! Verifique se seu nome e PIN estão corretos ou peça ao Dono para liberar no painel.";
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            }))
+        });
+    </script>
+</body>
+</html>

@@ -10,7 +10,6 @@
 </head>
 <body class="h-full flex text-white bg-slate-950" x-data="teamPage" x-init="init()">
     
-    <!-- Sidebar -->
     <aside class="w-20 md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center md:items-start py-8 space-y-8 z-10 transition-all">
         <div class="px-0 md:px-8 flex items-center justify-center md:justify-start w-full">
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center font-black italic text-xl shadow-lg">F</div>
@@ -32,10 +31,8 @@
     <main class="flex-1 flex flex-col h-full overflow-hidden">
         <header class="p-8 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/30">
             <div>
-                <h1 class="text-3xl font-black italic text-white flex items-center gap-3">
-                    Gestão de Equipe
-                </h1>
-                <p class="text-slate-500 font-bold text-sm mt-1 uppercase tracking-widest">Aprove o acesso dos seus funcionários</p>
+                <h1 class="text-3xl font-black italic text-white flex items-center gap-3">Gestão de Equipe</h1>
+                <p class="text-slate-500 font-bold text-sm mt-1 uppercase tracking-widest">Crie senhas para seus funcionários</p>
             </div>
             
             <div class="mt-4 sm:mt-0 flex flex-col items-end">
@@ -48,49 +45,70 @@
         </header>
 
         <div class="flex-1 overflow-y-auto p-8">
-            <div class="max-w-5xl mx-auto">
+            <div class="max-w-5xl mx-auto space-y-8">
+                
+                <!-- Criar Novo Funcionario -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl">
+                    <h2 class="text-lg font-black mb-4 flex items-center gap-2 text-blue-400"><span>+</span> Novo Funcionário</h2>
+                    <form @submit.prevent="createStaff" class="flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-1 flex flex-col">
+                            <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Nome (Apelido)</label>
+                            <input type="text" x-model="newStaff.name" required placeholder="joao" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500 lowercase">
+                        </div>
+                        <div class="flex-1 flex flex-col">
+                            <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">PIN (Senha)</label>
+                            <input type="password" x-model="newStaff.pin" required placeholder="1234" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500 tracking-[0.2em]">
+                        </div>
+                        <div class="flex-1 flex flex-col">
+                            <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Cargo</label>
+                            <select x-model="newStaff.role" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500 appearance-none">
+                                <option value="caixa">Caixa</option>
+                                <option value="garcom">Garçom</option>
+                                <option value="motoboy">Motoboy</option>
+                            </select>
+                        </div>
+                        <button type="submit" :disabled="isCreating" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black px-6 py-3 rounded-xl transition-all shadow-lg select-none whitespace-nowrap">
+                            <span x-text="isCreating ? 'Criando...' : 'Criar Acesso'"></span>
+                        </button>
+                    </form>
+                    <p class="text-[10px] text-slate-500 font-bold mt-3 uppercase tracking-widest">Acesse <span class="text-blue-400">/staff.html</span> com esses dados para testar</p>
+                </div>
+
+                <!-- Lista -->
                 <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b border-slate-800 bg-slate-900/50">
-                                <th class="p-5 text-xs font-black text-slate-500 uppercase tracking-widest">E-mail / Usuário</th>
-                                <th class="p-5 text-xs font-black text-slate-500 uppercase tracking-widest">Cargo Atual</th>
-                                <th class="p-5 text-xs font-black text-slate-500 uppercase tracking-widest text-right">Ação</th>
+                                <th class="p-5 text-xs font-black text-slate-500 uppercase tracking-widest">App ID / Funcionário</th>
+                                <th class="p-5 text-xs font-black text-slate-500 uppercase tracking-widest">Acesso de Sistema</th>
                             </tr>
                         </thead>
                         <tbody>
                             <template x-for="user in team" :key="user.id">
                                 <tr class="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
                                     <td class="p-5">
-                                        <div class="font-bold text-white" x-text="user.email || 'N/A'"></div>
-                                        <div class="text-[10px] text-slate-500 uppercase font-bold" x-text="'ID: ' + user.id.slice(0,8)"></div>
+                                        <div class="font-bold text-white uppercase" x-text="user.name"></div>
+                                        <div class="text-[10px] text-slate-500 uppercase font-bold" x-text="user.id"></div>
                                     </td>
                                     <td class="p-5">
-                                        <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest"
-                                            :class="{
-                                                'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30': user.role === 'pendente',
-                                                'bg-purple-500/20 text-purple-400 border border-purple-500/30': user.role === 'caixa',
-                                                'bg-blue-500/20 text-blue-400 border border-blue-500/30': user.role === 'garcom',
-                                                'bg-orange-500/20 text-orange-400 border border-orange-500/30': user.role === 'motoboy',
-                                                'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': user.role === 'admin'
-                                            }" x-text="user.role"></span>
-                                    </td>
-                                    <td class="p-5 text-right">
-                                        <div x-show="user.role !== 'admin'" class="flex items-center justify-end gap-2">
-                                            <select x-model="user.newRole" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-slate-300 outline-none focus:border-purple-500">
-                                                <option value="pendente">Bloquear (Pendente)</option>
-                                                <option value="caixa">Caixa</option>
-                                                <option value="garcom">Garçom</option>
-                                                <option value="motoboy">Motoboy</option>
+                                        <div x-show="user.role !== 'admin'" class="flex items-center gap-2">
+                                            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30" x-text="user.role"></span>
+                                            
+                                            <!-- Mudar Cargo Rápido -->
+                                            <select @change="updateRole(user, $event.target.value)" class="bg-slate-950/50 border border-slate-700/50 rounded-lg px-2 py-1 text-xs font-bold text-slate-400 outline-none hover:text-white cursor-pointer -ml-1">
+                                                <option value="" disabled selected>Alterar...</option>
+                                                <option value="caixa">Virar: Caixa</option>
+                                                <option value="garcom">Virar: Garçom</option>
+                                                <option value="motoboy">Virar: Motoboy</option>
+                                                <option value="pendente">Bloquear</option>
                                             </select>
-                                            <button @click="updateRole(user)" :disabled="user.role === user.newRole" :class="user.role !== user.newRole ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-slate-800 text-slate-600'" class="px-4 py-2 rounded-lg font-bold text-sm transition-all focus:outline-none">Salvar</button>
                                         </div>
-                                        <span x-show="user.role === 'admin'" class="text-xs font-bold text-slate-600 uppercase">Acesso Mestre</span>
+                                        <span x-show="user.role === 'admin'" class="text-[10px] font-black text-red-400 uppercase tracking-widest border border-red-500/20 px-2 py-1 rounded bg-red-500/10">DONO</span>
                                     </td>
                                 </tr>
                             </template>
                             <tr x-show="team.length === 0" x-cloak>
-                                <td colspan="3" class="p-10 text-center text-slate-500 font-bold uppercase tracking-widest">Nenhuma equipe encontrada</td>
+                                <td colspan="2" class="p-10 text-center text-slate-500 font-bold uppercase tracking-widest">Nenhuma equipe cadastrada</td>
                             </tr>
                         </tbody>
                     </table>
@@ -104,7 +122,9 @@
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('teamPage', () => ({
-                team: [], inviteCode: 'CARREGANDO...', orgId: null,
+                team: [], inviteCode: 'CARREGANDO...', orgId: null, isCreating: false,
+                newStaff: { name: '', pin: '', role: 'garcom' },
+                
                 async init() {
                     const session = await window.auth.session();
                     if (!session || session.profile.role !== 'admin') return window.location.href = 'index.html';
@@ -113,37 +133,66 @@
                     await this.loadOrg();
                     await this.loadTeam();
                 },
+
                 async loadOrg() {
                     const { data } = await window.supabaseClient.from('organizations').select('invite_code').eq('id', this.orgId).single();
                     if(data) this.inviteCode = data.invite_code;
                 },
+
                 async loadTeam() {
+                    // Nós buscamos todos os perfis. Como não temos a coluna nome real, vamos tentar deduzir pelas contas falsas ou só mostrar Func.
                     const { data } = await window.supabaseClient.from('profiles').select('id, role').eq('org_id', this.orgId).order('created_at', { ascending: true });
-                    
                     if (!data) return;
-                    
-                    // We need to fetch email from users, but client doesn't have access to auth.users.
-                    // Oh wait! profiles only has role, not email. We should just display the ID or wait, how do they identify the user?
-                    // Let's add a quick hack to show it's working even if we don't have emails in profile right now.
                     this.team = data.map(p => ({
-                        id: p.id,
+                        id: p.id.slice(0,8),
+                        realId: p.id,
                         role: p.role,
-                        newRole: p.role,
-                        email: 'Func.' + p.id.slice(0,4) // placeholder due to supabase RLS limiting auth.users
+                        name: p.role === 'admin' ? 'DONO RESTAURANTE' : 'FUNC. ' + p.id.slice(0,4)
                     }));
                 },
-                async updateRole(user) {
-                    if(!confirm(`Deseja alterar o acesso para ${user.newRole.toUpperCase()}?`)) return;
-                    
-                    const { error } = await window.supabaseClient.from('profiles').update({ role: user.newRole }).eq('id', user.id);
-                    if(error) {
-                        alert("Erro de permissão! Verifique se você tem permissão RLS para alterar perfis.");
-                        console.error(error);
-                    } else {
-                        user.role = user.newRole;
-                        alert("Cargo atualizado com sucesso!");
+
+                async createStaff() {
+                    this.isCreating = true;
+                    try {
+                        const cleanCode = this.inviteCode.trim().toUpperCase();
+                        const cleanUser = this.newStaff.name.trim().toLowerCase().replace(/\s+/g,'');
+                        const vEmail = `${cleanUser}@${cleanCode}.staff.com`;
+                        const vPass = `pin-${this.newStaff.pin}-${cleanCode}`;
+
+                        // Criamos um client SECUNDÁRIO que não rouba a sessão atual do dono!!!
+                        const supabaseUrl = window.supabaseClient.supabaseUrl;
+                        const supabaseKey = window.supabaseClient.supabaseKey;
+                        const isolateClient = supabase.createClient(supabaseUrl, supabaseKey, {
+                            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+                        });
+
+                        const { data, error } = await isolateClient.auth.signUp({ email: vEmail, password: vPass });
+                        if (error) throw error;
+
+                        // Espera gatilho de perfil nascer (1 seg)
+                        await new Promise(r => setTimeout(r, 1000));
+
+                        // O Dono ATUALIZA o perfil para dar o cargo, porque o dono tem RLS pra isso!
+                        await window.supabaseClient.from('profiles').update({ org_id: this.orgId, role: this.newStaff.role }).eq('id', data.user.id);
+                        
+                        alert(`Acesso criado! O(A) ${cleanUser.toUpperCase()} já pode entrar pelo /staff.html usando o Código e Senha.`);
+                        this.newStaff = { name: '', pin: '', role: 'garcom' };
+                        await this.loadTeam();
+                    } catch(e) {
+                        alert("Erro ao criar: " + e.message);
+                    } finally {
+                        this.isCreating = false;
                     }
                 },
+
+                async updateRole(user, newRole) {
+                    if(!newRole || !confirm(`Mudar acesso para ${newRole.toUpperCase()}?`)) return;
+                    
+                    const { error } = await window.supabaseClient.from('profiles').update({ role: newRole }).eq('id', user.realId);
+                    if(error) alert("Erro: " + error.message);
+                    else { alert("Atualizado!"); await this.loadTeam(); }
+                },
+
                 copyCode() {
                     navigator.clipboard.writeText(this.inviteCode);
                     alert("Código copiado!");
